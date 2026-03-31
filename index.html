@@ -3,19 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <title>拼豆管理</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#f7c8e0">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body { font-family: -apple-system; padding:16px; background:#fffafc;}
+body { font-family:-apple-system; padding:16px; background:#fffafc;}
 .section { background:#fff; border-radius:12px; padding:12px; margin-bottom:12px;}
 .row { display:flex; gap:8px; flex-wrap:wrap;}
 button { background:#ef6aa3; color:#fff; border:none; padding:6px 10px; border-radius:8px;}
 .secondary { background:#f4a8c6;}
-.danger { background:#d95c5c;}
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;}
 .stock-card { border:1px solid #eee; padding:8px; border-radius:10px;}
+h3 { position:sticky; top:0; background:#fffafc; padding:4px;}
 </style>
 </head>
 
@@ -25,22 +23,50 @@ button { background:#ef6aa3; color:#fff; border:none; padding:6px 10px; border-r
 
 <div class="section">
 <h2>库存</h2>
+
 <input id="searchInput" placeholder="搜索色号">
+
+<div class="row" style="margin-top:8px;">
+<button onclick="scrollToLetter('A')">A</button>
+<button onclick="scrollToLetter('B')">B</button>
+<button onclick="scrollToLetter('C')">C</button>
+<button onclick="scrollToLetter('D')">D</button>
+<button onclick="scrollToLetter('E')">E</button>
+<button onclick="scrollToLetter('F')">F</button>
+<button onclick="scrollToLetter('G')">G</button>
+<button onclick="scrollToLetter('H')">H</button>
+<button onclick="scrollToLetter('M')">M</button>
+</div>
+
 <div id="allStock"></div>
 </div>
 
 <div class="section">
 <h2>项目</h2>
+
 <input id="projectNameInput" placeholder="项目名">
-<textarea id="importInput" placeholder="A6 A8 C10"></textarea>
-<button onclick="importTemplate()">导入</button>
+<textarea id="importInput" placeholder="A6 A8 C10 或 A6 10"></textarea>
+<button onclick="importTemplate()">导入模板</button>
+
 <div id="projectsContainer"></div>
 </div>
 
 <script>
 
-const DEFAULT_CODES = ["A1","A6","A8","B17","C10","C16","G1","H2"];
+// ===== 120色完整列表（你的原版）=====
+const DEFAULT_CODES = [
+"A1","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15",
+"B1","B2","B3","B4","B5","B6","B7","B8","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20",
+"C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C13","C14","C15","C16","C17","C21",
+"D1","D2","D3","D5","D6","D7","D8","D9","D11","D12","D13","D14","D15","D16","D17","D18","D19","D20","D21",
+"E1","E2","E3","E4","E5","E6","E7","E8","E9","E10","E11","E12","E13","E14","E15","E16",
+"F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14",
+"G1","G2","G3","G5","G6","G7","G8","G9","G13","G14","G17",
+"H1","H2","H3","H4","H5","H6","H7","H12",
+"M5","M6","M9","M12"
+];
 
+// ===== 初始化 =====
 let stock = JSON.parse(localStorage.getItem("stock")||"null") || {};
 DEFAULT_CODES.forEach(c=>{
   if(!stock[c]) stock[c]=1000;
@@ -48,26 +74,59 @@ DEFAULT_CODES.forEach(c=>{
 
 let projects = JSON.parse(localStorage.getItem("projects")||"[]");
 
+// ===== 工具 =====
 function save(){
   localStorage.setItem("stock",JSON.stringify(stock));
   localStorage.setItem("projects",JSON.stringify(projects));
 }
 
-function renderStock(){
-  const kw = document.getElementById("searchInput").value.toUpperCase();
-  const list = Object.keys(stock).filter(c=>c.includes(kw));
-
-  document.getElementById("allStock").innerHTML =
-    `<div class="grid">`+
-    list.map(c=>`
-      <div class="stock-card">
-        <b>${c}</b><br>
-        ${stock[c]}
-      </div>
-    `).join("")+
-    `</div>`;
+function groupByLetter(list){
+  const map = {};
+  list.forEach(c=>{
+    const l = c[0];
+    if(!map[l]) map[l]=[];
+    map[l].push(c);
+  });
+  return map;
 }
 
+// ===== 渲染库存（升级版）=====
+function renderStock(){
+  const kw = document.getElementById("searchInput").value.toUpperCase();
+
+  let list = Object.keys(stock).sort((a,b)=>
+    a.localeCompare(b,undefined,{numeric:true})
+  );
+
+  if(kw){
+    list = list.filter(c=>c.includes(kw));
+  }
+
+  const grouped = groupByLetter(list);
+
+  document.getElementById("allStock").innerHTML =
+    Object.keys(grouped).map(letter=>`
+      <div id="group-${letter}">
+        <h3>${letter}组</h3>
+        <div class="grid">
+          ${grouped[letter].map(c=>{
+            const highlight = kw 
+              ? c.replace(kw, `<span style="color:red">${kw}</span>`)
+              : c;
+
+            return `
+              <div class="stock-card">
+                <b>${highlight}</b><br>
+                ${stock[c]}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `).join("");
+}
+
+// ===== 渲染项目 =====
 function renderProjects(){
   document.getElementById("projectsContainer").innerHTML =
     projects.map(p=>`
@@ -80,10 +139,13 @@ function renderProjects(){
     `).join("");
 }
 
-/* ⭐ 修复后的导入 */
+// ===== 导入（修复版）=====
 function importTemplate(){
   const input = document.getElementById("importInput").value.trim();
-  if(!input){ alert("请输入"); return;}
+  if(!input){
+    alert("请输入色号");
+    return;
+  }
 
   const tokens = input.split(/[\s,]+/);
 
@@ -93,7 +155,7 @@ function importTemplate(){
       return {
         color:match[1].toUpperCase(),
         need:parseInt(match[2])||0
-      }
+      };
     }
     return null;
   }).filter(Boolean);
@@ -110,6 +172,15 @@ function importTemplate(){
   render();
 }
 
+// ===== 导航 =====
+function scrollToLetter(letter){
+  const el = document.getElementById("group-"+letter);
+  if(el){
+    el.scrollIntoView({behavior:"smooth"});
+  }
+}
+
+// ===== 渲染 =====
 function render(){
   renderStock();
   renderProjects();
