@@ -470,26 +470,74 @@
         </div>
       `;
     }
-
+    
+    function renderStockCardWithHighlight(code, displayCode) {
+      const qty = stock[code] ?? 0;
+      const status = getStatus(qty);
+      const isFavorite = favorites.includes(code);
+      
+      return `
+      <div class="stock-card">
+      <div class="stock-code">
+        ${displayCode}
+        <span class="badge ${status.cls}">${status.text}</span>
+      </div>
+      <div class="stock-meta">库存：${qty}</div>
+      <div class="row" style="margin-top:8px;">
+        <button class="secondary" onclick="changeStockFromCard('${code}', -10)">-10</button>
+        <button class="secondary" onclick="changeStockFromCard('${code}', 10)">+10</button>
+        <button class="secondary" onclick="toggleFavorite('${code}')">${isFavorite ? "取消常用" : "设为常用"}</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input type="number" min="0" value="${qty}" onchange="setStockDirect('${code}', this.value)">
+      </div>
+    </div>
+  `;
+}
     function renderAllStock() {
       const container = document.getElementById("allStock");
       const keyword = (document.getElementById("searchInput")?.value || "").toUpperCase();
+      
       let codes = Object.keys(stock);
-      if (keyword) {codes = codes.filter(code => code.includes(keyword));}
+      // ⭐ 过滤
+      if (keyword) {
+        codes = codes.filter(code => code.includes(keyword));
+      }
       codes.sort(sortCodes);
+      
       const grouped = groupCodesByLetter(codes);
-
       container.innerHTML = Object.keys(grouped).sort().map(letter => {
         return `
           <div class="letter-block" id="group-${letter}">
-            <h3>${letter} 组</h3>
-            <div class="grid">
-              ${grouped[letter].map(code => renderStockCard(code)).join("")}
-            </div>
-          </div>
-        `;
-      }).join("");
+          <h3>${letter} 组</h3>
+          <div class="grid">
+          ${grouped[letter].map(code => {
+
+            // ⭐ 高亮逻辑（核心）
+            let displayCode = code;
+            if (keyword) {
+              displayCode = code.replace(
+                keyword,
+                `<span style="color:#ef6aa3;font-weight:700">${keyword}</span>`
+              );
+            }
+
+            return renderStockCardWithHighlight(code, displayCode);
+
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // ⭐ 自动滚动到结果（体验优化）
+  if (keyword) {
+    const first = document.querySelector(".stock-card");
+    if (first) {
+      first.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  }
+}
 
     function renderTemplateButtons() {
       const container = document.getElementById("templateButtons");
