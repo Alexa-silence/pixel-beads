@@ -259,11 +259,11 @@
       "M5","M6","M9","M12"
     ];
 
-    const DEFAULT_FAVORITES = ["C16", "C17", "C10", "C11", "D14", "D15", "B17", "B18", "A6", "A8", "G1"];
+    const DEFAULT_FAVORITES = ["H2", "H7","C3", "C13", "C21", "G8"];
 
     const TEMPLATE_MAP = {
       "戴夫": ["C16", "C17", "C10", "D14", "B17"],
-      "飞鼠": ["A6", "B17", "C10", "H2", "G14"],
+      "飞鼠": ["H2", "H7", "C3", "C21", "E14"],
       "人物基础肤色": ["C10", "C11", "C16", "C17", "D14"],
       "黑白灰基础": ["H1", "H2", "H3", "H4", "H5", "H6"],
       "绿色系基础": ["G1", "G2", "G3", "G5", "G6", "G7", "G8", "G9", "G13", "G14", "G17"]
@@ -516,9 +516,11 @@
           return code && current < need;
         }).length;
 
-        const projectStatus = missingCount > 0
-          ? `<span class="badge bad">缺 ${missingCount} 色</span>`
-          : `<span class="badge good">可以做</span>`;
+       const projectStatus = project.status === "done"
+         ? `<span class="badge good">已制作</span>`
+         : (missingCount > 0
+            ? `<span class="badge bad">缺 ${missingCount} 色</span>`
+            : `<span class="badge warn">未制作</span>`);
 
         return `
           <div class="project-card">
@@ -528,6 +530,13 @@
                 ${projectStatus}
               </div>
               <button class="danger" onclick="deleteProject(${pi})">删除项目</button>
+              <div class="row" style="margin-top:10px;">
+              ${
+                project.status === "done"
+                ? `<button class="secondary" onclick="undoProject(${pi})">撤销制作</button>`
+                : `<button onclick="startProject(${pi})">开始制作</button>`
+              }
+              </div>
             </div>
 
             <div class="divider"></div>
@@ -667,10 +676,11 @@ function importTemplate() {
 
   const name = document.getElementById("projectNameInput").value.trim() || "导入模板";
 
-  projects.push({
-    name,
-    items
-  });
+ projects.push({
+  name,
+  items,
+  status: "idle" // idle / done
+});
 
   saveAll();
   render();
@@ -682,6 +692,40 @@ function scrollToLetter(letter) {
   }
 }
 render();
+    // 开始制作（扣库存）
+function startProject(index) {
+  const project = projects[index];
+  if (project.status === "done") return;
+
+  project.items.forEach(item => {
+    const code = item.color;
+    const need = item.need || 0;
+
+    if (!stock[code]) stock[code] = 0;
+    stock[code] = Math.max(0, stock[code] - need);
+  });
+
+  project.status = "done";
+  saveAll();
+  render();
+}
+
+// 撤销制作（加库存）
+function undoProject(index) {
+  const project = projects[index];
+  if (project.status !== "done") return;
+
+  project.items.forEach(item => {
+    const code = item.color;
+    const need = item.need || 0;
+
+    stock[code] = (stock[code] || 0) + need;
+  });
+
+  project.status = "idle";
+  saveAll();
+  render();
+}
   </script>
 </body>
 </html>
