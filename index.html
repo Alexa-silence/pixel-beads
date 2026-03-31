@@ -209,7 +209,13 @@
       <input id="projectNameInput" type="text" placeholder="项目名称">
       <button onclick="createEmptyProject()">创建空项目</button>
     </div>
-
+    <div style="margin-top:10px;">
+  <textarea id="importInput" placeholder="粘贴色号，如：A6 A8 C10 或 A6 10（带数量）" style="width:100%; height:80px;"></textarea>
+  <div class="row" style="margin-top:6px;">
+    <button onclick="importTemplate()">一键导入模板</button>
+  </div>
+      
+  </div>
     <div class="muted" style="margin-top:10px;">模板按钮</div>
     <div id="templateButtons" class="template-buttons"></div>
 
