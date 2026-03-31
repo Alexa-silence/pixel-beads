@@ -1,214 +1,687 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>拼豆管理</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>拼豆管理</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f7c8e0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 
-<style>
-body { font-family:-apple-system; padding:16px; background:#fffafc;}
-.section { background:#fff; border-radius:12px; padding:12px; margin-bottom:12px;}
-.row { display:flex; gap:8px; flex-wrap:wrap;}
-button { background:#ef6aa3; color:#fff; border:none; padding:6px 10px; border-radius:8px;}
-.secondary { background:#f4a8c6;}
-.danger { background:#d95c5c;}
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;}
-.stock-card { border:1px solid #eee; padding:8px; border-radius:10px;}
-h3 { position:sticky; top:0; background:#fffafc; padding:4px;}
-</style>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #fffafc;
+      color: #333;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 8px 0 16px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 24px 0 12px;
+    }
+    h3 {
+      font-size: 16px;
+      margin: 12px 0 8px;
+    }
+    .section {
+      background: #fff;
+      border: 1px solid #f1d7e3;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    input, button, select {
+      font-size: 14px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      padding: 8px 10px;
+      background: #fff;
+    }
+    input[type="number"] {
+      width: 90px;
+    }
+    input[type="text"] {
+      min-width: 110px;
+    }
+    button {
+      border: none;
+      background: #ef6aa3;
+      color: white;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #f4a8c6;
+      color: #fff;
+    }
+    button.danger {
+      background: #d95c5c;
+    }
+    .muted {
+      color: #777;
+      font-size: 13px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+    .good {
+      background: #e7f7ec;
+      color: #17803d;
+    }
+    .warn {
+      background: #fff3db;
+      color: #b26b00;
+    }
+    .bad {
+      background: #fdeaea;
+      color: #b42318;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+    .stock-card {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+    .stock-code {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .stock-meta {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .letter-block {
+      margin-bottom: 14px;
+      padding-top: 6px;
+      border-top: 1px dashed #f0d4df;
+    }
+    .project-card {
+      border: 1px solid #f0d4df;
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 12px;
+      background: #fff;
+    }
+    .item-row {
+      display: grid;
+      grid-template-columns: 1fr 90px 70px 80px 44px;
+      gap: 8px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    .item-row input[type="number"] {
+      width: 100%;
+    }
+    .item-row input[type="text"] {
+      width: 100%;
+    }
+    .center {
+      text-align: center;
+    }
+    .small {
+      font-size: 12px;
+      color: #777;
+    }
+    .sticky-top {
+      position: sticky;
+      top: 0;
+      background: #fffafc;
+      padding-top: env(safe-area-inset-top);
+      z-index: 5;
+    }
+    .divider {
+      height: 1px;
+      background: #f1d7e3;
+      margin: 12px 0;
+    }
+    .template-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+  </style>
 </head>
-
 <body>
+  <div class="sticky-top">
+    <h1>🧩 拼豆管理</h1>
+  </div>
 
-<h1>🧩 拼豆管理</h1>
+  <div class="section">
+    <h2>基础设置</h2>
+    <div class="row">
+      <label class="muted">低库存阈值</label>
+      <input id="thresholdInput" type="number" min="0" />
+      <button onclick="saveThreshold()">保存阈值</button>
+      <button class="secondary" onclick="resetAllData()">重置全部数据</button>
+    </div>
+    <div class="muted" style="margin-top:8px;">
+      低于阈值会显示为 ⚠️ 低库存；库存为 0 会显示为 ❌ 缺货。
+    </div>
+  </div>
 
-<div class="section">
-<h2>库存</h2>
+  <div class="section">
+    <h2>库存管理</h2>
+    <div class="row" style="margin-top:10px;">
+  <input id="searchInput" type="text" placeholder="搜索色号，如 C1">
+  </div>
+    
+    <div class="row">
+      <input id="colorInput" type="text" placeholder="色号，如 C18">
+      <input id="stockInput" type="number" placeholder="库存">
+      <button onclick="updateSingleStock()">添加/更新库存</button>
+    </div>
+    <div class="muted" style="margin-top:8px;">
+      已预置你确认的 122 个色号，默认库存为 1000。H2库存为5000
+    </div>
+  </div>
 
-<input id="searchInput" placeholder="搜索色号">
+  <div class="section">
+    <h2>⭐ 常用色</h2>
+    <div id="favoriteStock"></div>
+  </div>
 
-<div class="row" style="margin-top:8px;">
-<button onclick="scrollToLetter('A')">A</button>
-<button onclick="scrollToLetter('B')">B</button>
-<button onclick="scrollToLetter('C')">C</button>
-<button onclick="scrollToLetter('D')">D</button>
-<button onclick="scrollToLetter('E')">E</button>
-<button onclick="scrollToLetter('F')">F</button>
-<button onclick="scrollToLetter('G')">G</button>
-<button onclick="scrollToLetter('H')">H</button>
-<button onclick="scrollToLetter('M')">M</button>
-</div>
+  <div class="section">
+    <h2>全部库存（按字母分组）</h2>
+    <div class="row" style="margin-bottom:10px;">
+      <button class="secondary" onclick="scrollToLetter('A')">A</button>
+      <button class="secondary" onclick="scrollToLetter('B')">B</button>
+      <button class="secondary" onclick="scrollToLetter('C')">C</button>
+      <button class="secondary" onclick="scrollToLetter('D')">D</button>
+      <button class="secondary" onclick="scrollToLetter('E')">E</button>
+      <button class="secondary" onclick="scrollToLetter('F')">F</button>
+      <button class="secondary" onclick="scrollToLetter('G')">G</button>
+      <button class="secondary" onclick="scrollToLetter('H')">H</button>
+      <button class="secondary" onclick="scrollToLetter('M')">M</button>
+    </div>
+    <div id="allStock"></div>
+  </div>
 
-<div id="allStock"></div>
-</div>
+  <div class="section">
+    <h2>项目管理</h2>
+    <div class="row">
+      <input id="projectNameInput" type="text" placeholder="项目名称">
+      <button onclick="createEmptyProject()">创建空项目</button>
+    </div>
+    <div style="margin-top:10px;">
+  <textarea id="importInput" placeholder="粘贴色号，如：A6 A8 C10 或 A6 10（带数量）" style="width:100%; height:80px;"></textarea>
+  <div class="row" style="margin-top:6px;">
+    <button onclick="importTemplate()">一键导入模板</button>
+  </div>
+      
+  </div>
+    <div class="muted" style="margin-top:10px;">模板按钮</div>
+    <div id="templateButtons" class="template-buttons"></div>
 
-<div class="section">
-<h2>项目</h2>
+    <div class="muted" style="margin-top:10px;">
+      以后你要自己加模板，只需要修改代码里的 <b>TEMPLATE_MAP</b>。
+    </div>
 
-<input id="projectNameInput" placeholder="项目名">
+    <div id="projectsContainer"></div>
+  </div>
 
-<textarea id="importInput" placeholder="A6 A8 C10 或 A6 10"></textarea>
-<button onclick="importTemplate()">导入模板</button>
+  <div class="section">
+    <h2>⚠️ 补货清单</h2>
+    <div id="restockContainer"></div>
+  </div>
 
-<div class="row" style="margin-top:8px;">
-<button class="secondary" onclick="createTemplate('戴夫')">戴夫模板</button>
-<button class="secondary" onclick="createTemplate('飞鼠')">飞鼠模板</button>
-<button class="secondary" onclick="createTemplate('肤色')">肤色模板</button>
-</div>
+  <script>
+    const DEFAULT_CODES = [
+      "A1","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15",
+      "B1","B2","B3","B4","B5","B6","B7","B8","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20",
+      "C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C13","C14","C15","C16","C17","C21",
+      "D1","D2","D3","D5","D6","D7","D8","D9","D11","D12","D13","D14","D15","D16","D17","D18","D19","D20","D21",
+      "E1","E2","E3","E4","E5","E6","E7","E8","E9","E10","E11","E12","E13","E14","E15","E16",
+      "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14",
+      "G1","G2","G3","G5","G6","G7","G8","G9","G13","G14","G17",
+      "H1","H2","H3","H4","H5","H6","H7","H12",
+      "M5","M6","M9","M12"
+    ];
 
-<div id="projectsContainer"></div>
-</div>
+    const DEFAULT_FAVORITES = ["C16", "C17", "C10", "C11", "D14", "D15", "B17", "B18", "A6", "A8", "G1"];
 
-<script>
+    const TEMPLATE_MAP = {
+      "戴夫": ["C16", "C17", "C10", "D14", "B17"],
+      "飞鼠": ["A6", "B17", "C10", "H2", "G14"],
+      "人物基础肤色": ["C10", "C11", "C16", "C17", "D14"],
+      "黑白灰基础": ["H1", "H2", "H3", "H4", "H5", "H6"],
+      "绿色系基础": ["G1", "G2", "G3", "G5", "G6", "G7", "G8", "G9", "G13", "G14", "G17"]
+    };
 
-// ===== 色号 =====
-const DEFAULT_CODES = [
-"A1","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15",
-"B1","B2","B3","B4","B5","B6","B7","B8","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20",
-"C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C13","C14","C15","C16","C17","C21",
-"D1","D2","D3","D5","D6","D7","D8","D9","D11","D12","D13","D14","D15","D16","D17","D18","D19","D20","D21",
-"E1","E2","E3","E4","E5","E6","E7","E8","E9","E10","E11","E12","E13","E14","E15","E16",
-"F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14",
-"G1","G2","G3","G5","G6","G7","G8","G9","G13","G14","G17",
-"H1","H2","H3","H4","H5","H6","H7","H12",
-"M5","M6","M9","M12"
-];
+    function buildDefaultStock() {
+      const obj = {};
+      DEFAULT_CODES.forEach(code => {
+        obj[code] = 1000;
+      });
+      return obj;
+    }
 
-// ===== 模板 =====
-const TEMPLATE_MAP = {
-  "戴夫": ["C16","C17","C10","D14","B17"],
-  "飞鼠": ["A6","B17","C10","H2","G14"],
-  "肤色": ["C10","C11","C16","C17","D14"]
-};
+    function mergeDefaultStock(savedStock) {
+      const base = buildDefaultStock();
+      return { ...base, ...(savedStock || {}) };
+    }
 
-// ===== 初始化 =====
-let stock = JSON.parse(localStorage.getItem("stock")||"null") || {};
-DEFAULT_CODES.forEach(c=>{ if(!stock[c]) stock[c]=1000; });
+    let stock = mergeDefaultStock(JSON.parse(localStorage.getItem("stock") || "null"));
+    let projects = JSON.parse(localStorage.getItem("projects") || "[]");
+    let threshold = JSON.parse(localStorage.getItem("threshold") || "100");
+    let favorites = JSON.parse(localStorage.getItem("favorites") || "null") || DEFAULT_FAVORITES;
 
-let projects = JSON.parse(localStorage.getItem("projects")||"[]");
+    function saveAll() {
+      localStorage.setItem("stock", JSON.stringify(stock));
+      localStorage.setItem("projects", JSON.stringify(projects));
+      localStorage.setItem("threshold", JSON.stringify(threshold));
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+    }
 
-// ===== 工具 =====
-function save(){
-  localStorage.setItem("stock",JSON.stringify(stock));
-  localStorage.setItem("projects",JSON.stringify(projects));
-}
+    function getStatus(qty) {
+      if (qty === 0) return { text: "❌ 缺货", cls: "bad" };
+      if (qty < threshold) return { text: "⚠️ 低库存", cls: "warn" };
+      return { text: "✅ 正常", cls: "good" };
+    }
 
-function groupByLetter(list){
-  const map = {};
-  list.forEach(c=>{
-    const l = c[0];
-    if(!map[l]) map[l]=[];
-    map[l].push(c);
-  });
-  return map;
-}
+    function saveThreshold() {
+      const value = parseInt(document.getElementById("thresholdInput").value);
+      if (Number.isNaN(value) || value < 0) return;
+      threshold = value;
+      saveAll();
+      render();
+    }
 
-// ===== 库存渲染（完整版）=====
-function renderStock(){
-  const kw = document.getElementById("searchInput").value.toUpperCase();
+    function updateSingleStock() {
+      const code = document.getElementById("colorInput").value.trim().toUpperCase();
+      const qty = parseInt(document.getElementById("stockInput").value);
+      if (!code || Number.isNaN(qty)) return;
+      stock[code] = qty;
+      saveAll();
+      render();
+      document.getElementById("colorInput").value = "";
+      document.getElementById("stockInput").value = "";
+    }
 
-  let list = Object.keys(stock).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-  if(kw) list = list.filter(c=>c.includes(kw));
+    function toggleFavorite(code) {
+      if (favorites.includes(code)) {
+        favorites = favorites.filter(item => item !== code);
+      } else {
+        favorites.push(code);
+      }
+      saveAll();
+      render();
+    }
 
-  const grouped = groupByLetter(list);
+    function createEmptyProject() {
+      const name = document.getElementById("projectNameInput").value.trim();
+      if (!name) return;
+      projects.push({
+        name,
+        items: []
+      });
+      saveAll();
+      render();
+      document.getElementById("projectNameInput").value = "";
+    }
 
-  document.getElementById("allStock").innerHTML =
-    Object.keys(grouped).map(letter=>`
-      <div id="group-${letter}">
-        <h3>${letter}组</h3>
-        <div class="grid">
-          ${grouped[letter].map(c=>{
-            const highlight = kw ? c.replace(kw, `<span style="color:red">${kw}</span>`) : c;
-            return `
-              <div class="stock-card">
-                <b>${highlight}</b>
-                <div>库存：${stock[c]}</div>
-                <div class="row">
-                  <button class="secondary" onclick="changeStock('${c}',-10)">-10</button>
-                  <button class="secondary" onclick="changeStock('${c}',10)">+10</button>
-                </div>
-                <input type="number" value="${stock[c]}" onchange="setStock('${c}',this.value)">
-              </div>
-            `;
-          }).join("")}
+    function createTemplate(templateName) {
+      const colors = TEMPLATE_MAP[templateName];
+      if (!colors) return;
+
+      const customName = document.getElementById("projectNameInput").value.trim();
+      const name = customName || templateName;
+
+      projects.push({
+        name,
+        items: colors.map(color => ({ color, need: 0 }))
+      });
+
+      saveAll();
+      render();
+      document.getElementById("projectNameInput").value = "";
+    }
+
+    function deleteProject(index) {
+      projects.splice(index, 1);
+      saveAll();
+      render();
+    }
+
+    function addProjectRow(projectIndex) {
+      projects[projectIndex].items.push({ color: "", need: 0 });
+      saveAll();
+      render();
+    }
+
+    function updateProjectName(projectIndex, value) {
+      projects[projectIndex].name = value;
+      saveAll();
+    }
+
+    function updateProjectColor(projectIndex, itemIndex, value) {
+      projects[projectIndex].items[itemIndex].color = value.trim().toUpperCase();
+      saveAll();
+      render();
+    }
+
+    function updateProjectNeed(projectIndex, itemIndex, value) {
+      projects[projectIndex].items[itemIndex].need = parseInt(value) || 0;
+      saveAll();
+      render();
+    }
+
+    function deleteProjectItem(projectIndex, itemIndex) {
+      projects[projectIndex].items.splice(itemIndex, 1);
+      saveAll();
+      render();
+    }
+
+    function changeStockFromCard(code, delta) {
+      const current = stock[code] || 0;
+      const next = Math.max(0, current + delta);
+      stock[code] = next;
+      saveAll();
+      render();
+    }
+
+    function setStockDirect(code, value) {
+      const qty = parseInt(value);
+      if (Number.isNaN(qty) || qty < 0) return;
+      stock[code] = qty;
+      saveAll();
+      render();
+    }
+
+    function renderFavorites() {
+      const container = document.getElementById("favoriteStock");
+      const favCodes = favorites
+        .filter(code => stock.hasOwnProperty(code))
+        .sort(sortCodes);
+
+      if (favCodes.length === 0) {
+        container.innerHTML = `<div class="muted">还没有常用色。</div>`;
+        return;
+      }
+
+      container.innerHTML = `<div class="grid">
+        ${favCodes.map(code => renderStockCard(code)).join("")}
+      </div>`;
+    }
+
+    function groupCodesByLetter(codes) {
+      const groups = {};
+      codes.forEach(code => {
+        const letter = code.charAt(0);
+        if (!groups[letter]) groups[letter] = [];
+        groups[letter].push(code);
+      });
+      Object.keys(groups).forEach(letter => {
+        groups[letter].sort(sortCodes);
+      });
+      return groups;
+    }
+
+    function sortCodes(a, b) {
+      const la = a.charAt(0);
+      const lb = b.charAt(0);
+      if (la !== lb) return la.localeCompare(lb);
+      const na = parseInt(a.slice(1)) || 0;
+      const nb = parseInt(b.slice(1)) || 0;
+      return na - nb;
+    }
+
+    function renderStockCard(code) {
+      const qty = stock[code] ?? 0;
+      const status = getStatus(qty);
+      const isFavorite = favorites.includes(code);
+
+      return `
+        <div class="stock-card">
+          <div class="stock-code">
+            ${code}
+            <span class="badge ${status.cls}">${status.text}</span>
+          </div>
+          <div class="stock-meta">库存：${qty}</div>
+          <div class="row" style="margin-top:8px;">
+            <button class="secondary" onclick="changeStockFromCard('${code}', -10)">-10</button>
+            <button class="secondary" onclick="changeStockFromCard('${code}', 10)">+10</button>
+            <button class="secondary" onclick="toggleFavorite('${code}')">${isFavorite ? "取消常用" : "设为常用"}</button>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <input type="number" min="0" value="${qty}" onchange="setStockDirect('${code}', this.value)">
+          </div>
         </div>
-      </div>
-    `).join("");
-}
+      `;
+    }
 
-// ===== 库存操作 =====
-function changeStock(code,delta){
-  stock[code] = Math.max(0,(stock[code]||0)+delta);
-  save();
-  render();
-}
-function setStock(code,val){
-  stock[code] = parseInt(val)||0;
-  save();
-}
+    function renderAllStock() {
+      const container = document.getElementById("allStock");
+      const keyword = (document.getElementById("searchInput")?.value || "").toUpperCase();
+      let codes = Object.keys(stock);
+      if (keyword) {codes = codes.filter(code => code.includes(keyword));}
+      codes.sort(sortCodes);
+      const grouped = groupCodesByLetter(codes);
 
-// ===== 项目 =====
-function createTemplate(name){
-  const colors = TEMPLATE_MAP[name];
-  const projectName = document.getElementById("projectNameInput").value || name;
+      container.innerHTML = Object.keys(grouped).sort().map(letter => {
+        return `
+          <div class="letter-block" id="group-${letter}">
+            <h3>${letter} 组</h3>
+            <div class="grid">
+              ${grouped[letter].map(code => renderStockCard(code)).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderTemplateButtons() {
+      const container = document.getElementById("templateButtons");
+      const templateNames = Object.keys(TEMPLATE_MAP);
+
+      container.innerHTML = templateNames.map(name => {
+        return `<button class="secondary" onclick="createTemplate('${escapeJs(name)}')">生成${escapeHtml(name)}模板</button>`;
+      }).join("");
+    }
+
+    function renderProjects() {
+      const container = document.getElementById("projectsContainer");
+
+      if (projects.length === 0) {
+        container.innerHTML = `<div class="muted">还没有项目，先创建一个吧。</div>`;
+        return;
+      }
+
+      container.innerHTML = projects.map((project, pi) => {
+        const missingCount = project.items.filter(item => {
+          const code = (item.color || "").trim().toUpperCase();
+          const need = item.need || 0;
+          const current = stock[code] || 0;
+          return code && current < need;
+        }).length;
+
+        const projectStatus = missingCount > 0
+          ? `<span class="badge bad">缺 ${missingCount} 色</span>`
+          : `<span class="badge good">可以做</span>`;
+
+        return `
+          <div class="project-card">
+            <div class="row" style="justify-content:space-between;">
+              <div>
+                <input type="text" value="${escapeHtml(project.name)}" onchange="updateProjectName(${pi}, this.value)" style="font-weight:700; min-width:160px;">
+                ${projectStatus}
+              </div>
+              <button class="danger" onclick="deleteProject(${pi})">删除项目</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="item-row small" style="font-weight:700;">
+              <div>色号</div>
+              <div class="center">需求</div>
+              <div class="center">库存</div>
+              <div class="center">状态</div>
+              <div class="center">删</div>
+            </div>
+
+            ${project.items.map((item, ii) => {
+              const code = (item.color || "").trim().toUpperCase();
+              const need = item.need || 0;
+              const current = stock[code] || 0;
+              const ok = !code ? false : current >= need;
+              const statusText = !code ? "待填" : (ok ? "✅" : "❌");
+              return `
+                <div class="item-row">
+                  <input type="text" value="${escapeHtml(code)}" onchange="updateProjectColor(${pi}, ${ii}, this.value)" placeholder="色号">
+                  <input type="number" min="0" value="${need}" onchange="updateProjectNeed(${pi}, ${ii}, this.value)">
+                  <div class="center">${code ? current : "-"}</div>
+                  <div class="center">${statusText}</div>
+                  <button class="danger" onclick="deleteProjectItem(${pi}, ${ii})">×</button>
+                </div>
+              `;
+            }).join("")}
+
+            <div class="row" style="margin-top:10px;">
+              <button class="secondary" onclick="addProjectRow(${pi})">+ 添加颜色</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRestock() {
+      const container = document.getElementById("restockContainer");
+      const shortageMap = {};
+
+      projects.forEach(project => {
+        project.items.forEach(item => {
+          const code = (item.color || "").trim().toUpperCase();
+          const need = item.need || 0;
+          if (!code) return;
+          const current = stock[code] || 0;
+          if (current < need) {
+            const gap = need - current;
+            shortageMap[code] = Math.max(shortageMap[code] || 0, gap);
+          }
+        });
+      });
+
+      const codes = Object.keys(shortageMap).sort(sortCodes);
+
+      if (codes.length === 0) {
+        container.innerHTML = `<div class="muted">暂无需要补货的颜色。</div>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="grid">
+          ${codes.map(code => `
+            <div class="stock-card">
+              <div class="stock-code">${code}</div>
+              <div class="stock-meta">还需补：${shortageMap[code]}</div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function resetAllData() {
+      const ok = confirm("确定要重置全部数据吗？这会恢复默认库存并清空项目。");
+      if (!ok) return;
+      stock = buildDefaultStock();
+      projects = [];
+      threshold = 100;
+      favorites = [...DEFAULT_FAVORITES];
+      saveAll();
+      render();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function escapeJs(str) {
+      return String(str).replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+    }
+
+    function render() {
+      document.getElementById("thresholdInput").value = threshold;
+      renderTemplateButtons();
+      renderFavorites();
+      renderAllStock();
+      renderProjects();
+      renderRestock();
+    }
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+
+    render();
+    document.addEventListener("input", (e) => {
+    if (e.target.id === "searchInput") {
+    renderAllStock();
+    }
+  });
+    function scrollToLetter(letter) {
+  const el = document.getElementById("group-" + letter);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth" });
+  }
+    }
+
+function importTemplate() {
+  const input = document.getElementById("importInput").value.trim();
+  if (!input) return;
+
+  const lines = input.split("\n");
+
+  const items = lines.map(line => {
+    const parts = line.trim().split(/[\s,]+/);
+    return {
+      color: (parts[0] || "").toUpperCase(),
+      need: parseInt(parts[1]) || 0
+    };
+  }).filter(item => item.color);
+
+  const name = document.getElementById("projectNameInput").value.trim() || "导入模板";
 
   projects.push({
-    name:projectName,
-    items:colors.map(c=>({color:c,need:0}))
+    name,
+    items
   });
 
-  save();
+  saveAll();
   render();
 }
-
-// ===== 导入（修复）=====
-function importTemplate(){
-  const input = document.getElementById("importInput").value.trim();
-  if(!input) return;
-
-  const tokens = input.split(/[\s,]+/);
-
-  const items = tokens.map(t=>{
-    const m = t.match(/^([A-Z]\d+)(?:\s*(\d+))?$/i);
-    if(m) return {color:m[1].toUpperCase(),need:parseInt(m[2])||0};
-    return null;
-  }).filter(Boolean);
-
-  const name = document.getElementById("projectNameInput").value || "导入";
-
-  projects.push({name,items});
-  save();
-  render();
+function scrollToLetter(letter) {
+  const el = document.getElementById("group-" + letter);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth" });
+  }
 }
-
-// ===== 渲染项目 =====
-function renderProjects(){
-  document.getElementById("projectsContainer").innerHTML =
-    projects.map(p=>`
-      <div class="section">
-        <b>${p.name}</b>
-        <div>${p.items.map(i=>`${i.color}(${i.need})`).join(", ")}</div>
-      </div>
-    `).join("");
-}
-
-// ===== 导航 =====
-function scrollToLetter(letter){
-  const el = document.getElementById("group-"+letter);
-  if(el) el.scrollIntoView({behavior:"smooth"});
-}
-
-// ===== 渲染 =====
-function render(){
-  renderStock();
-  renderProjects();
-}
-
-document.getElementById("searchInput").addEventListener("input",renderStock);
-
 render();
-
-</script>
-
+  </script>
 </body>
 </html>
