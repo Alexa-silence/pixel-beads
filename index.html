@@ -183,13 +183,17 @@
 
   <div class="section">
     <h2>库存管理</h2>
+    <div class="row" style="margin-top:10px;">
+  <input id="searchInput" type="text" placeholder="搜索色号，如 C1">
+  </div>
+    
     <div class="row">
       <input id="colorInput" type="text" placeholder="色号，如 C18">
       <input id="stockInput" type="number" placeholder="库存">
       <button onclick="updateSingleStock()">添加/更新库存</button>
     </div>
     <div class="muted" style="margin-top:8px;">
-      已预置你确认的 122 个色号，默认库存为 1000。
+      已预置你确认的 122 个色号，默认库存为 1000。H2库存为5000
     </div>
   </div>
 
@@ -200,6 +204,17 @@
 
   <div class="section">
     <h2>全部库存（按字母分组）</h2>
+    <div class="row" style="margin-bottom:10px;">
+      <button class="secondary" onclick="scrollToLetter('A')">A</button>
+      <button class="secondary" onclick="scrollToLetter('B')">B</button>
+      <button class="secondary" onclick="scrollToLetter('C')">C</button>
+      <button class="secondary" onclick="scrollToLetter('D')">D</button>
+      <button class="secondary" onclick="scrollToLetter('E')">E</button>
+      <button class="secondary" onclick="scrollToLetter('F')">F</button>
+      <button class="secondary" onclick="scrollToLetter('G')">G</button>
+      <button class="secondary" onclick="scrollToLetter('H')">H</button>
+      <button class="secondary" onclick="scrollToLetter('M')">M</button>
+    </div>
     <div id="allStock"></div>
   </div>
 
@@ -458,12 +473,15 @@
 
     function renderAllStock() {
       const container = document.getElementById("allStock");
-      const codes = Object.keys(stock).sort(sortCodes);
+      const keyword = (document.getElementById("searchInput")?.value || "").toUpperCase();
+      let codes = Object.keys(stock);
+      if (keyword) {codes = codes.filter(code => code.includes(keyword));}
+      codes.sort(sortCodes);
       const grouped = groupCodesByLetter(codes);
 
       container.innerHTML = Object.keys(grouped).sort().map(letter => {
         return `
-          <div class="letter-block">
+          <div class="letter-block" id="group-${letter}">
             <h3>${letter} 组</h3>
             <div class="grid">
               ${grouped[letter].map(code => renderStockCard(code)).join("")}
@@ -621,6 +639,49 @@
     }
 
     render();
+    document.addEventListener("input", (e) => {
+    if (e.target.id === "searchInput") {
+    renderAllStock();
+    }
+  });
+    function scrollToLetter(letter) {
+  const el = document.getElementById("group-" + letter);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth" });
+  }
+    }
+
+function importTemplate() {
+  const input = document.getElementById("importInput").value.trim();
+  if (!input) return;
+
+  const lines = input.split("\n");
+
+  const items = lines.map(line => {
+    const parts = line.trim().split(/[\s,]+/);
+    return {
+      color: (parts[0] || "").toUpperCase(),
+      need: parseInt(parts[1]) || 0
+    };
+  }).filter(item => item.color);
+
+  const name = document.getElementById("projectNameInput").value.trim() || "导入模板";
+
+  projects.push({
+    name,
+    items
+  });
+
+  saveAll();
+  render();
+}
+function scrollToLetter(letter) {
+  const el = document.getElementById("group-" + letter);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth" });
+  }
+}
+render();
   </script>
 </body>
 </html>
