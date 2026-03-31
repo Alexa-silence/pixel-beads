@@ -11,6 +11,7 @@ body { font-family:-apple-system; padding:16px; background:#fffafc;}
 .row { display:flex; gap:8px; flex-wrap:wrap;}
 button { background:#ef6aa3; color:#fff; border:none; padding:6px 10px; border-radius:8px;}
 .secondary { background:#f4a8c6;}
+.danger { background:#d95c5c;}
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;}
 .stock-card { border:1px solid #eee; padding:8px; border-radius:10px;}
 h3 { position:sticky; top:0; background:#fffafc; padding:4px;}
@@ -45,15 +46,22 @@ h3 { position:sticky; top:0; background:#fffafc; padding:4px;}
 <h2>项目</h2>
 
 <input id="projectNameInput" placeholder="项目名">
+
 <textarea id="importInput" placeholder="A6 A8 C10 或 A6 10"></textarea>
 <button onclick="importTemplate()">导入模板</button>
+
+<div class="row" style="margin-top:8px;">
+<button class="secondary" onclick="createTemplate('戴夫')">戴夫模板</button>
+<button class="secondary" onclick="createTemplate('飞鼠')">飞鼠模板</button>
+<button class="secondary" onclick="createTemplate('肤色')">肤色模板</button>
+</div>
 
 <div id="projectsContainer"></div>
 </div>
 
 <script>
 
-// ===== 120色完整列表（你的原版）=====
+// ===== 色号 =====
 const DEFAULT_CODES = [
 "A1","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15",
 "B1","B2","B3","B4","B5","B6","B7","B8","B10","B11","B12","B13","B14","B15","B16","B17","B18","B19","B20",
@@ -66,11 +74,16 @@ const DEFAULT_CODES = [
 "M5","M6","M9","M12"
 ];
 
+// ===== 模板 =====
+const TEMPLATE_MAP = {
+  "戴夫": ["C16","C17","C10","D14","B17"],
+  "飞鼠": ["A6","B17","C10","H2","G14"],
+  "肤色": ["C10","C11","C16","C17","D14"]
+};
+
 // ===== 初始化 =====
 let stock = JSON.parse(localStorage.getItem("stock")||"null") || {};
-DEFAULT_CODES.forEach(c=>{
-  if(!stock[c]) stock[c]=1000;
-});
+DEFAULT_CODES.forEach(c=>{ if(!stock[c]) stock[c]=1000; });
 
 let projects = JSON.parse(localStorage.getItem("projects")||"[]");
 
@@ -90,17 +103,12 @@ function groupByLetter(list){
   return map;
 }
 
-// ===== 渲染库存（升级版）=====
+// ===== 库存渲染（完整版）=====
 function renderStock(){
   const kw = document.getElementById("searchInput").value.toUpperCase();
 
-  let list = Object.keys(stock).sort((a,b)=>
-    a.localeCompare(b,undefined,{numeric:true})
-  );
-
-  if(kw){
-    list = list.filter(c=>c.includes(kw));
-  }
+  let list = Object.keys(stock).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  if(kw) list = list.filter(c=>c.includes(kw));
 
   const grouped = groupByLetter(list);
 
@@ -110,14 +118,16 @@ function renderStock(){
         <h3>${letter}组</h3>
         <div class="grid">
           ${grouped[letter].map(c=>{
-            const highlight = kw 
-              ? c.replace(kw, `<span style="color:red">${kw}</span>`)
-              : c;
-
+            const highlight = kw ? c.replace(kw, `<span style="color:red">${kw}</span>`) : c;
             return `
               <div class="stock-card">
-                <b>${highlight}</b><br>
-                ${stock[c]}
+                <b>${highlight}</b>
+                <div>库存：${stock[c]}</div>
+                <div class="row">
+                  <button class="secondary" onclick="changeStock('${c}',-10)">-10</button>
+                  <button class="secondary" onclick="changeStock('${c}',10)">+10</button>
+                </div>
+                <input type="number" value="${stock[c]}" onchange="setStock('${c}',this.value)">
               </div>
             `;
           }).join("")}
@@ -126,44 +136,43 @@ function renderStock(){
     `).join("");
 }
 
-// ===== 渲染项目 =====
-function renderProjects(){
-  document.getElementById("projectsContainer").innerHTML =
-    projects.map(p=>`
-      <div class="section">
-        <b>${p.name}</b>
-        <div>
-        ${p.items.map(i=>`${i.color}(${i.need})`).join(" , ")}
-        </div>
-      </div>
-    `).join("");
+// ===== 库存操作 =====
+function changeStock(code,delta){
+  stock[code] = Math.max(0,(stock[code]||0)+delta);
+  save();
+  render();
+}
+function setStock(code,val){
+  stock[code] = parseInt(val)||0;
+  save();
 }
 
-// ===== 导入（修复版）=====
+// ===== 项目 =====
+function createTemplate(name){
+  const colors = TEMPLATE_MAP[name];
+  const projectName = document.getElementById("projectNameInput").value || name;
+
+  projects.push({
+    name:projectName,
+    items:colors.map(c=>({color:c,need:0}))
+  });
+
+  save();
+  render();
+}
+
+// ===== 导入（修复）=====
 function importTemplate(){
   const input = document.getElementById("importInput").value.trim();
-  if(!input){
-    alert("请输入色号");
-    return;
-  }
+  if(!input) return;
 
   const tokens = input.split(/[\s,]+/);
 
   const items = tokens.map(t=>{
-    const match = t.match(/^([A-Z]\d+)(?:\s*(\d+))?$/i);
-    if(match){
-      return {
-        color:match[1].toUpperCase(),
-        need:parseInt(match[2])||0
-      };
-    }
+    const m = t.match(/^([A-Z]\d+)(?:\s*(\d+))?$/i);
+    if(m) return {color:m[1].toUpperCase(),need:parseInt(m[2])||0};
     return null;
   }).filter(Boolean);
-
-  if(items.length===0){
-    alert("格式不对");
-    return;
-  }
 
   const name = document.getElementById("projectNameInput").value || "导入";
 
@@ -172,12 +181,21 @@ function importTemplate(){
   render();
 }
 
+// ===== 渲染项目 =====
+function renderProjects(){
+  document.getElementById("projectsContainer").innerHTML =
+    projects.map(p=>`
+      <div class="section">
+        <b>${p.name}</b>
+        <div>${p.items.map(i=>`${i.color}(${i.need})`).join(", ")}</div>
+      </div>
+    `).join("");
+}
+
 // ===== 导航 =====
 function scrollToLetter(letter){
   const el = document.getElementById("group-"+letter);
-  if(el){
-    el.scrollIntoView({behavior:"smooth"});
-  }
+  if(el) el.scrollIntoView({behavior:"smooth"});
 }
 
 // ===== 渲染 =====
