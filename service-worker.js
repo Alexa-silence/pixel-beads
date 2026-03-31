@@ -1,17 +1,14 @@
-const CACHE_NAME = "beads-cache-v1";
+// 🚫 完全关闭缓存版本（开发推荐）
 
-self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(["./", "./index.html"]);
-    })
-  );
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
 });
 
-self.addEventListener("fetch", e => {
-  e.respondWith(
-    caches.match(e.request).then(res => {
-      return res || fetch(e.request);
-    })
-  );
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// ❗关键：不走缓存，每次都请求最新资源
+self.addEventListener("fetch", (event) => {
+  event.respondWith(fetch(event.request));
 });
